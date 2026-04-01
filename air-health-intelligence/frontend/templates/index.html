@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AirGuard Intelligence — Urban Air Quality & Health Risk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <!-- ── Noise overlay ── -->
+  <div class="noise"></div>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">AirGuard<br><em>Intelligence</em></span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-panel="dashboard">
+        <span class="nav-icon">⬡</span> Dashboard
+      </button>
+      <button class="nav-btn" data-panel="analytics">
+        <span class="nav-icon">⌇</span> Analytics
+      </button>
+      <button class="nav-btn" data-panel="alerts">
+        <span class="nav-icon">◉</span> Alerts
+        <span class="badge" id="alert-badge">0</span>
+      </button>
+      <button class="nav-btn" data-panel="chat">
+        <span class="nav-icon">◈</span> AI Assistant
+      </button>
+    </nav>
+    <div class="ws-status" id="ws-status">
+      <span class="ws-dot"></span>
+      <span class="ws-label">Connecting…</span>
+    </div>
+  </aside>
+
+  <!-- ── Main content ── -->
+  <main class="main">
+
+    <!-- ── PANEL: Dashboard ── -->
+    <section class="panel active" id="panel-dashboard">
+      <header class="panel-header">
+        <h1>Urban Air Quality <span class="accent">Dashboard</span></h1>
+        <div class="header-controls">
+          <select id="city-select" class="ctrl-select">
+            <option value="Delhi">Delhi</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Bangalore">Bangalore</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Kolkata">Kolkata</option>
+            <option value="Hyderabad">Hyderabad</option>
+          </select>
+          <button class="ctrl-btn" id="refresh-btn">↻ Refresh</button>
+        </div>
+      </header>
+
+      <!-- AQI Hero -->
+      <div class="aqi-hero" id="aqi-hero">
+        <div class="aqi-ring" id="aqi-ring">
+          <svg viewBox="0 0 200 200" class="ring-svg">
+            <circle cx="100" cy="100" r="80" class="ring-bg"/>
+            <circle cx="100" cy="100" r="80" class="ring-fill" id="ring-fill"
+              stroke-dasharray="502" stroke-dashoffset="502"/>
+          </svg>
+          <div class="aqi-center">
+            <span class="aqi-value" id="aqi-value">—</span>
+            <span class="aqi-label">AQI</span>
+          </div>
+        </div>
+        <div class="aqi-meta">
+          <h2 id="city-name">Select a city</h2>
+          <p class="aqi-category" id="aqi-category">—</p>
+          <p class="aqi-advisory" id="aqi-advisory">Loading data…</p>
+          <div class="aqi-tags" id="aqi-tags"></div>
+        </div>
+      </div>
+
+      <!-- Pollutant grid -->
+      <div class="pollutant-grid" id="pollutant-grid">
+        <div class="p-card" id="pc-pm25"><span class="p-name">PM2.5</span><span class="p-val">—</span><span class="p-unit">µg/m³</span></div>
+        <div class="p-card" id="pc-pm10"><span class="p-name">PM10</span><span class="p-val">—</span><span class="p-unit">µg/m³</span></div>
+        <div class="p-card" id="pc-no2"><span class="p-name">NO₂</span><span class="p-val">—</span><span class="p-unit">µg/m³</span></div>
+        <div class="p-card" id="pc-o3"><span class="p-name">O₃</span><span class="p-val">—</span><span class="p-unit">µg/m³</span></div>
+        <div class="p-card" id="pc-co"><span class="p-name">CO</span><span class="p-val">—</span><span class="p-unit">mg/m³</span></div>
+        <div class="p-card" id="pc-so2"><span class="p-name">SO₂</span><span class="p-val">—</span><span class="p-unit">µg/m³</span></div>
+      </div>
+
+      <!-- Weather row -->
+      <div class="weather-row" id="weather-row">
+        <div class="w-card"><span class="w-icon">🌡</span><span class="w-val" id="w-temp">—</span><span class="w-lbl">°C</span></div>
+        <div class="w-card"><span class="w-icon">💧</span><span class="w-val" id="w-hum">—</span><span class="w-lbl">% RH</span></div>
+        <div class="w-card"><span class="w-icon">💨</span><span class="w-val" id="w-wind">—</span><span class="w-lbl">m/s</span></div>
+        <div class="w-card"><span class="w-icon">👁</span><span class="w-val" id="w-vis">—</span><span class="w-lbl">km</span></div>
+      </div>
+
+      <!-- City heatmap table -->
+      <div class="section-title">All Cities — Snapshot</div>
+      <div class="heatmap-grid" id="heatmap-grid"></div>
+    </section>
+
+    <!-- ── PANEL: Analytics ── -->
+    <section class="panel" id="panel-analytics">
+      <header class="panel-header">
+        <h1>Trend <span class="accent">Analytics</span></h1>
+        <div class="header-controls">
+          <select id="analytics-city" class="ctrl-select">
+            <option value="Delhi">Delhi</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Bangalore">Bangalore</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Kolkata">Kolkata</option>
+            <option value="Hyderabad">Hyderabad</option>
+          </select>
+          <select id="analytics-hours" class="ctrl-select">
+            <option value="24">Last 24h</option>
+            <option value="48" selected>Last 48h</option>
+            <option value="168">Last 7 days</option>
+          </select>
+          <button class="ctrl-btn" id="load-analytics">Load</button>
+        </div>
+      </header>
+
+      <div class="stat-row" id="stat-row">
+        <div class="stat-card"><span class="stat-val" id="s-mean">—</span><span class="stat-lbl">Mean AQI</span></div>
+        <div class="stat-card"><span class="stat-val" id="s-max">—</span><span class="stat-lbl">Peak AQI</span></div>
+        <div class="stat-card"><span class="stat-val" id="s-p95">—</span><span class="stat-lbl">95th Pct.</span></div>
+        <div class="stat-card"><span class="stat-val" id="s-trend">—</span><span class="stat-lbl">Trend</span></div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="trend-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- ── PANEL: Alerts ── -->
+    <section class="panel" id="panel-alerts">
+      <header class="panel-header">
+        <h1>Active <span class="accent">Alerts</span></h1>
+        <button class="ctrl-btn" id="refresh-alerts">↻ Refresh</button>
+      </header>
+      <div class="alert-list" id="alert-list">
+        <div class="empty-state">No active alerts — air quality is within safe limits.</div>
+      </div>
+    </section>
+
+    <!-- ── PANEL: AI Chat ── -->
+    <section class="panel" id="panel-chat">
+      <header class="panel-header">
+        <h1>AI Health <span class="accent">Assistant</span></h1>
+        <select id="chat-city" class="ctrl-select">
+          <option value="">All Cities</option>
+          <option value="Delhi">Delhi</option>
+          <option value="Mumbai">Mumbai</option>
+          <option value="Bangalore">Bangalore</option>
+          <option value="Chennai">Chennai</option>
+          <option value="Kolkata">Kolkata</option>
+          <option value="Hyderabad">Hyderabad</option>
+        </select>
+      </header>
+      <div class="chat-window" id="chat-window">
+        <div class="chat-msg assistant">
+          <div class="chat-avatar">◈</div>
+          <div class="chat-bubble">
+            Hello! I'm AirGuard AI. Ask me anything about current air quality, health risks, or protective measures for any Indian city. I use live pollution data to answer your questions.
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" class="chat-input" placeholder="Ask about air quality, health risks, best times to go outside…" />
+        <button class="chat-send" id="chat-send">➤</button>
+      </div>
+      <!-- Quick prompts -->
+      <div class="quick-prompts">
+        <button class="qp" onclick="sendQuick('What is the current AQI in Delhi and is it safe to jog outside?')">🏃 Safe to jog?</button>
+        <button class="qp" onclick="sendQuick('Which city has the worst air quality right now?')">🏙 Worst city?</button>
+        <button class="qp" onclick="sendQuick('What protective measures should I take today?')">🛡 Protect myself</button>
+        <button class="qp" onclick="sendQuick('Explain PM2.5 and why it is dangerous.')">🔬 What is PM2.5?</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Toast container ── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

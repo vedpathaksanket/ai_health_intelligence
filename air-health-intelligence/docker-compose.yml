@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: airguard_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: air_health_intelligence
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Application ──────────────────────────────────────────────────────
+  api:
+    build: .
+    container_name: airguard_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DB_NAME=air_health_intelligence
+      - APP_ENV=production
+      - DEBUG=false
+      # Mount secrets from .env file at runtime
+    env_file:
+      - .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app/frontend:ro    # hot-reload templates in dev
+    command: >
+      uvicorn backend.main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 2
+      --log-level info
+
+  # ── Mongo Express (dev only) ──────────────────────────────────────────────
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: airguard_mongoui
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    profiles:
+      - dev        # only starts with: docker-compose --profile dev up
+
+volumes:
+  mongo_data:
